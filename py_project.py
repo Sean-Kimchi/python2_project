@@ -101,6 +101,12 @@ def main():
     #lets generate a correlation matrix for analysis
     corr_matrix = comd_df_intp.corr(method='pearson')
 
+    comd_df_intp[['Happiness Score']].plot.hist()
+    comd_df_intp[['Health']].plot.hist()
+    comd_df_intp[['Economy']].plot.hist()
+    comd_df_intp[['Family']].plot.hist()
+
+
     with pd.option_context('display.max_columns', None):
 
         print(corr_matrix)
@@ -111,7 +117,7 @@ def main():
     comd_df_intp[['Happiness Score','Health']].plot(y='Health', x='Happiness Score', kind='scatter')
     comd_df_intp[['Happiness Score','Family']].plot(y='Family', x='Happiness Score', kind='scatter')
 
-
+    
     plt.show()
 
 
