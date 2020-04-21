@@ -37,6 +37,65 @@ def extrapolate_trend(x,y):
 
     return extrapolated_dataframe
 
+def linear_regression(df, xval, yval):
+    #make sure we have a fresh index in the data frame
+    df.reset_index(drop=True)
+
+    #sum of all x values
+    xsum = df[xval].sum()
+    #sum of all y values
+    ysum = df[yval].sum()
+    #sum of products of pairs
+    df['xy'] = df[xval]*df[yval]
+    xysum = df['xy'].sum()
+    #total squared x
+    df['x2'] = df[xval]**2
+    x2sum = df['x2'].sum()
+    #total squared y
+    df['y2'] = df[yval]**2
+    y2sum = df['y2'].sum()
+    #number of values
+    n = len(df.index)
+
+    #for slope of linear line y=m*x+b
+    m = ((n*xysum)-(xsum*ysum))/((n*x2sum)-(xsum*xsum))
+
+    b = ((x2sum*ysum)-(xsum*xysum))/((n*x2sum)-(xsum*xsum))
+
+    return m,b
+
+def get_rsquared(df, xval, yval):
+    #make sure we have a fresh index in the data frame
+    df.reset_index(drop=True)
+
+    #sum of all x values
+    xsum = df[xval].sum()
+    #sum of all y values
+    ysum = df[yval].sum()
+    #sum of products of pairs
+    df['xy'] = df[xval]*df[yval]
+    xysum = df['xy'].sum()
+    #total squared x
+    df['x2'] = df[xval]**2
+    x2sum = df['x2'].sum()
+    #total squared y
+    df['y2'] = df[yval]**2
+    y2sum = df['y2'].sum()
+    #number of values
+    n = len(df.index)
+
+    r2= (((n*xysum)-(xsum*ysum))**2)/(((n*x2sum)-(xsum*xsum))*((n*y2sum)-(ysum*ysum)))
+
+    return r2
+
+def get_stdv(df,cols):
+
+    stdv = df[cols].std()
+
+    return stdv
+    
+    
+
 
 
 
@@ -92,8 +151,9 @@ def main():
     print(comd_df)
 
     #lets start looking at some statistics of the file
+    with pd.option_context('display.max_columns', None):
 
-    print('\nrecords per year\n','------------------------\n' ,comd_df.groupby('year').count())
+        print('\nrecords per year\n','------------------------\n' ,comd_df.groupby('year').count())
 
     #we can see that some values will be of NaN.  Interpolate to fill in those gaps
     comd_df_intp = comd_df.interpolate()
@@ -113,14 +173,65 @@ def main():
 
     #health, economy, and family have highest corr vale
         
-    comd_df_intp[['Happiness Score','Economy']].plot(y='Economy', x='Happiness Score', kind='scatter')
-    comd_df_intp[['Happiness Score','Health']].plot(y='Health', x='Happiness Score', kind='scatter')
-    comd_df_intp[['Happiness Score','Family']].plot(y='Family', x='Happiness Score', kind='scatter')
+    
+    #comd_df_intp[['Happiness Score','Health']].plot(y='Health', x='Happiness Score', kind='scatter')
+    #comd_df_intp[['Happiness Score','Family']].plot(y='Family', x='Happiness Score', kind='scatter')
+    #comd_df_intp[['Happiness Score','Generosity']].plot(y='Generosity', x='Happiness Score', kind='scatter')
+
 
     
-    plt.show()
+    #plt.show()
 
-    #comments
+    #Calculate and Display the R^2 value
+    print('Happiness ~ Economy Rsquared=',get_rsquared(comd_df_intp,'Happiness Score','Economy'))
+    print('Happiness ~ Health Rsquared=',get_rsquared(comd_df_intp,'Happiness Score','Health'))
+    print('Happiness ~ Family Rsquared=',get_rsquared(comd_df_intp,'Happiness Score','Family'))
+    print('Happiness ~ Generosity Rsquared=',get_rsquared(comd_df_intp,'Happiness Score','Generosity'))
+
+    
+    #Calculate and display the standard deviation
+    print('Standard Deviation Economy:',get_stdv(comd_df_intp,'Economy'))
+    print('Standard Deviation Health:',get_stdv(comd_df_intp,'Health'))
+    print('Standard Deviation Family:',get_stdv(comd_df_intp,'Family'))
+    print('Standard Deviation Generosity:',get_stdv(comd_df_intp,'Generosity'))
+
+    me,be = linear_regression(comd_df_intp,'Happiness Score','Economy')
+    mh,bh = linear_regression(comd_df_intp,'Happiness Score','Health')
+    mf,bf = linear_regression(comd_df_intp,'Happiness Score','Family')
+    mg,bg = linear_regression(comd_df_intp,'Happiness Score','Generosity')
+
+    #add trendline values to the dataframe based on y=mx+b
+    comd_df_intp['linee'] = me*comd_df_intp[['Happiness Score']] + be
+    comd_df_intp['lineh'] = mh*comd_df_intp[['Happiness Score']] + bh
+    comd_df_intp['linef'] = mf*comd_df_intp[['Happiness Score']] + bf
+    comd_df_intp['lineg'] = mg*comd_df_intp[['Happiness Score']] + bg
+
+
+    # Plot the best fit line over the actual values
+    comd_df_intp[['Happiness Score','Economy']].plot(y='Economy', x='Happiness Score', kind='scatter')
+    plt.scatter(comd_df_intp[['Happiness Score']], comd_df_intp[['Economy']])
+    plt.plot(comd_df_intp[['Happiness Score']], comd_df_intp[['linee']], 'b')
+    plt.title('Happiness vs. Economy')
+
+    comd_df_intp[['Happiness Score','Health']].plot(y='Health', x='Happiness Score', kind='scatter')
+    plt.scatter(comd_df_intp[['Happiness Score']], comd_df_intp[['Health']])
+    plt.plot(comd_df_intp[['Happiness Score']], comd_df_intp[['lineh']], 'b')
+    plt.title('Happiness vs. Health')
+
+    comd_df_intp[['Happiness Score','Family']].plot(y='Family', x='Happiness Score', kind='scatter')
+    plt.scatter(comd_df_intp[['Happiness Score']], comd_df_intp[['Family']])
+    plt.plot(comd_df_intp[['Happiness Score']], comd_df_intp[['linef']], 'b')
+    plt.title('Happiness vs. Family')
+
+    comd_df_intp[['Happiness Score','Generosity']].plot(y='Generosity', x='Happiness Score', kind='scatter')
+    plt.scatter(comd_df_intp[['Happiness Score']], comd_df_intp[['Generosity']])
+    plt.plot(comd_df_intp[['Happiness Score']], comd_df_intp[['lineg']], 'b')
+    plt.title('Happiness vs. Generosity')
+
+
+    #plt.show()
+
+    
 
     
 
